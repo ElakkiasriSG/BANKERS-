@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banker's Algorithm Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4ff;
+    min-height: 100vh;
+    padding: 30px 20px;
+  }
+
+  /* ── TOP HERO BANNER ── */
+  .hero {
+    background: linear-gradient(120deg, #4f46e5, #7c3aed, #db2777);
+    border-radius: 24px;
+    padding: 36px 40px;
+    max-width: 1300px;
+    margin: 0 auto 28px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 8px 32px rgba(79,70,229,0.35);
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-sub {
+    font-size: 0.875rem;
+    opacity: 0.85;
+    margin-top: 6px;
+  }
+
+  .hero-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    background: rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  /* ── CARDS WRAPPER ── */
+  .card {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    max-width: 1300px;
+    margin: 0 auto 22px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border: 1px solid #e8eaff;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 2px dashed #e8eaff;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e1b4b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title .icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .purple-box { background: #ede9fe; }
+  .blue-box   { background: #dbeafe; }
+  .green-box  { background: #dcfce7; }
+  .pink-box   { background: #fce7f3; }
+
+  /* ── BUTTONS ── */
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s ease;
+    letter-spacing: 0.2px;
+  }
+
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-purple { background: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+  .btn-blue   { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+  .btn-rose   { background: #f43f5e; color: white; box-shadow: 0 4px 12px rgba(244,63,94,0.3); }
+  .btn-amber  { background: #f59e0b; color: white; box-shadow: 0 4px 12px rgba(245,158,11,0.3); font-size: 14px; padding: 11px 24px; }
+  .btn-outline {
+    background: transparent;
+    color: #4f46e5;
+    border: 2px solid #c7d2fe;
+    box-shadow: none;
+  }
+  .btn-outline:hover { background: #eef2ff; }
+
+  /* ── TABLES ── */
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid #e8eaff;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  thead tr {
+    background: #f5f3ff;
+  }
+
+  th {
+    padding: 12px 10px;
+    font-weight: 600;
+    color: #4f46e5;
+    text-align: center;
+    border-bottom: 2px solid #e8eaff;
+    white-space: nowrap;
+  }
+
+  th.alloc-head { background: #ede9fe; color: #6d28d9; }
+  th.max-head   { background: #dbeafe; color: #1d4ed8; }
+  th.need-head  { background: #dcfce7; color: #166534; }
+  th.proc-head  { background: #f5f3ff; color: #4f46e5; }
+  th.act-head   { background: #fce7f3; color: #9d174d; }
+
+  td {
+    padding: 10px 6px;
+    text-align: center;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .proc-cell {
+    font-weight: 700;
+    color: #4f46e5;
+    font-size: 13px;
+  }
+
+  .proc-badge {
+    background: #ede9fe;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+
+  input[type="number"] {
+    width: 65px;
+    padding: 7px 5px;
+    text-align: center;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: #fafbff;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+  input:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+  }
+
+  .delete-btn {
+    background: #fff1f2;
+    border: 1.5px solid #fecdd3;
+    color: #f43f5e;
+    border-radius: 8px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+  }
+  .delete-btn:hover { background: #ffe4e6; transform: scale(1.1); }
+
+  /* ── AVAILABLE SECTION ── */
+  .avail-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 18px 0 6px;
+  }
+
+  .avail-chip {
+    background: #f5f3ff;
+    border: 2px solid #c7d2fe;
+    border-radius: 14px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 130px;
+  }
+
+  .avail-chip label {
+    font-weight: 700;
+    color: #4f46e5;
+    font-size: 13px;
+    min-width: 30px;
+  }
+
+  .avail-note {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 12px;
+    color: #92400e;
+    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* ── RESULT SECTION ── */
+  .result-idle {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 15px;
+  }
+
+  .result-safe, .result-unsafe {
+    border-radius: 16px;
+    padding: 24px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .result-safe {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 2px solid #86efac;
+  }
+
+  .result-unsafe {
+    background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+    border: 2px solid #fca5a5;
+  }
+
+  .result-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .result-safe .result-title { color: #15803d; }
+  .result-unsafe .result-title { color: #b91c1c; }
+
+  .seq-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin: 12px 0;
+  }
+
+  .seq-node {
+    background: #4f46e5;
+    color: white;
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 3px 10px rgba(79,70,229,0.3);
+  }
+
+  .seq-arrow {
+    color: #6366f1;
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .result-meta {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .meta-chip {
+    background: white;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 12px;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .meta-chip span { font-weight: 700; color: #4f46e5; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    color: #94a3b8;
+    margin-top: 16px;
+    font-size: 12px;
+    padding-bottom: 10px;
+  }
+
+  .empty-row td {
+    padding: 30px;
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 24px 20px; }
+    .hero-title { font-size: 1.4rem; }
+    input[type="number"] { width: 52px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-title">🏦 Banker's Algorithm Simulator</div>
+    <div class="hero-sub">Deadlock Avoidance · Resource Allocation · Safe State Detection</div>
+  </div>
+  <div class="hero-badges">
+    <span class="badge">📐 Need = Max − Allocation</span>
+    <span class="badge">🔐 Safety Algorithm</span>
+    <span class="badge">⚡ Dynamic Processes</span>
+  </div>
+</div>
+
+<!-- CONTROL CARD -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <div class="icon-box purple-box">⚙️</div>
+      Simulator Controls
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-purple" onclick="addProcess()">➕ Add Process</button>
+      <button class="btn btn-blue" onclick="addResource()">➕ Add Resource</button>
+      <button class="btn btn-outline" onclick="resetSimulator()">🔄 Reset Default</button>
+      <button class="btn btn-amber" onclick="runBanker()">⚡ Run Algorithm</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card-title" style="margin-bottom:14px;">
+    <div class="icon-box blue-box">📊</div>
+    Allocation &amp; Maximum Need Matrix
+  </div>
+  <div class="table-wrapper">
+    <table id="bankerTable">
+      <thead>
+        <tr id="headerRow">
+          <th class="proc-head" style="min-width:80px">Process</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- AVAILABLE -->
+  <div style="margin-top:24px;">
+    <div class="card-title" style="margin-bottom:4px;">
+      <div class="icon-box green-box">🎯</div>
+      Available Resources Vector
+    </div>
+    <div class="avail-grid" id="availableContainer"></div>
+    <div class="avail-note">
+      💡 Available = Total Instances − Sum of All Allocations
+    </div>
+  </div>
+</div>
+
+<!-- OUTPUT CARD -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <div class="icon-box pink-box">📋</div>
+      Analysis Result
+    </div>
+  </div>
+  <div id="outputArea">
+    <div class="result-idle">
+      🔍 Click <strong>"Run Algorithm"</strong> above to check the system's safe state
+    </div>
+  </div>
+</div>
+
+<footer>⚡ Banker's Algorithm — Deadlock Avoidance Simulator | Need = Max − Allocation</footer>
+
+<script>
+let processCount = 0;
+let resourceCount = 0;
+
+function rebuildTable() {
+  const headerRow = document.getElementById("headerRow");
+  const tableBody = document.getElementById("tableBody");
+
+  while (headerRow.children.length > 1) headerRow.removeChild(headerRow.lastChild);
+
+  for (let i = 0; i < resourceCount; i++) {
+    const thA = document.createElement("th");
+    thA.className = "alloc-head";
+    thA.innerText = `Alloc R${i+1}`;
+    const thM = document.createElement("th");
+    thM.className = "max-head";
+    thM.innerText = `Max R${i+1}`;
+    const thN = document.createElement("th");
+    thN.className = "need-head";
+    thN.innerText = `Need R${i+1}`;
+    headerRow.appendChild(thA);
+    headerRow.appendChild(thM);
+    headerRow.appendChild(thN);
+  }
+
+  const thAct = document.createElement("th");
+  thAct.className = "act-head";
+  thAct.innerText = "Action";
+  headerRow.appendChild(thAct);
+
+  tableBody.innerHTML = "";
+
+  if (processCount === 0) {
+    const tr = document.createElement("tr");
+    tr.className = "empty-row";
+    const td = document.createElement("td");
+    td.colSpan = 1 + resourceCount * 3 + 1;
+    td.textContent = "No processes yet. Click 'Add Process' to begin.";
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+    updateAvailableUI();
+    return;
+  }
+
+  for (let i = 0; i < processCount; i++) {
+    const row = document.createElement("tr");
+    row.setAttribute("data-pid", i);
+
+    const tdName = document.createElement("td");
+    tdName.innerHTML = `<div class="proc-cell"><span class="proc-badge">P${i+1}</span></div>`;
+    row.appendChild(tdName);
+
+    for (let r = 0; r < resourceCount; r++) {
+      const tdA = document.createElement("td");
+      const inA = document.createElement("input");
+      inA.type = "number"; inA.value = "0"; inA.min = "0"; inA.step = "1";
+      inA.className = "alloc-input";
+      inA.setAttribute("data-pid", i); inA.setAttribute("data-ridx", r);
+      inA.addEventListener("input", updateNeedCells);
+      tdA.appendChild(inA);
+      row.appendChild(tdA);
+
+      const tdM = document.createElement("td");
+      const inM = document.createElement("input");
+      inM.type = "number"; inM.value = "0"; inM.min = "0"; inM.step = "1";
+      inM.className = "max-input";
+      inM.setAttribute("data-pid", i); inM.setAttribute("data-ridx", r);
+      inM.addEventListener("input", updateNeedCells);
+      tdM.appendChild(inM);
+      row.appendChild(tdM);
+
+      const tdN = document.createElement("td");
+      const needSpan = document.createElement("span");
+      needSpan.id = `need_${i}_${r}`;
+      needSpan.style.cssText = "background:#dcfce7;color:#166534;padding:4px 10px;border-radius:20px;font-weight:600;font-size:13px;display:inline-block;";
+      needSpan.textContent = "0";
+      tdN.appendChild(needSpan);
+      row.appendChild(tdN);
+    }
+
+    const tdDel = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.innerHTML = "🗑️";
+    delBtn.className = "delete-btn";
+    delBtn.title = "Remove Process";
+    delBtn.onclick = (function(pid) { return function() { removeProcess(pid); }; })(i);
+    tdDel.appendChild(delBtn);
+    row.appendChild(tdDel);
+
+    tableBody.appendChild(row);
+  }
+
+  updateAvailableUI();
+}
+
+function updateNeedCells() {
+  const rows = document.querySelectorAll("#tableBody tr");
+  rows.forEach((row, i) => {
+    for (let r = 0; r < resourceCount; r++) {
+      const aIn = row.querySelector(`.alloc-input[data-ridx="${r}"]`);
+      const mIn = row.querySelector(`.max-input[data-ridx="${r}"]`);
+      const nSpan = document.getElementById(`need_${i}_${r}`);
+      if (!aIn || !mIn || !nSpan) continue;
+      const a = parseInt(aIn.value) || 0;
+      const m = parseInt(mIn.value) || 0;
+      const n = m - a;
+      nSpan.textContent = n < 0 ? "!" : n;
+      nSpan.style.background = n < 0 ? "#fee2e2" : "#dcfce7";
+      nSpan.style.color = n < 0 ? "#991b1b" : "#166534";
+    }
+  });
+}
+
+function removeProcess(pid) {
+  if (processCount <= 1) {
+    flashOutput("⚠️ Cannot remove the last process!", false);
+    return;
+  }
+  const rows = document.querySelectorAll("#tableBody tr");
+  const newAllocData = [], newMaxData = [];
+  rows.forEach((row, i) => {
+    if (i === pid) return;
+    const aInputs = row.querySelectorAll(".alloc-input");
+    const mInputs = row.querySelectorAll(".max-input");
+    const ar = [], mr = [];
+    aInputs.forEach(inp => ar.push(parseInt(inp.value) || 0));
+    mInputs.forEach(inp => mr.push(parseInt(inp.value) || 0));
+    newAllocData.push(ar);
+    newMaxData.push(mr);
+  });
+  processCount--;
+  rebuildTable();
+  const newRows = document.querySelectorAll("#tableBody tr");
+  newRows.forEach((row, i) => {
+    if (i >= newAllocData.length) return;
+    const aInputs = row.querySelectorAll(".alloc-input");
+    const mInputs = row.querySelectorAll(".max-input");
+    for (let r = 0; r < resourceCount && r < newAllocData[i].length; r++) {
+      if (aInputs[r]) aInputs[r].value = newAllocData[i][r];
+      if (mInputs[r]) mInputs[r].value = newMaxData[i][r];
+    }
+  });
+  updateNeedCells();
+}
+
+function addResource() {
+  resourceCount++;
+  rebuildTable();
+}
+
+function addProcess() {
+  processCount++;
+  rebuildTable();
+  const rows = document.querySelectorAll("#tableBody tr");
+  const last = rows[rows.length - 1];
+  if (last && resourceCount > 0) {
+    last.querySelectorAll(".max-input").forEach(inp => inp.value = "5");
+  }
+  updateNeedCells();
+}
+
+function resetSimulator() {
+  processCount = 2;
+  resourceCount = 2;
+  rebuildTable();
+
+  const rows = document.querySelectorAll("#tableBody tr");
+  if (rows.length >= 2) {
+    const p0A = rows[0].querySelectorAll(".alloc-input");
+    const p0M = rows[0].querySelectorAll(".max-input");
+    p0A[0].value = "1"; p0A[1].value = "0";
+    p0M[0].value = "3"; p0M[1].value = "2";
+
+    const p1A = rows[1].querySelectorAll(".alloc-input");
+    const p1M = rows[1].querySelectorAll(".max-input");
+    p1A[0].value = "1"; p1A[1].value = "2";
+    p1M[0].value = "4"; p1M[1].value = "3";
+  }
+
+  const avInps = document.querySelectorAll("#availableContainer input");
+  if (avInps[0]) avInps[0].value = "1";
+  if (avInps[1]) avInps[1].value = "1";
+
+  updateNeedCells();
+  document.getElementById("outputArea").innerHTML = `<div class="result-idle">🔍 Click <strong>"Run Algorithm"</strong> above to check the system's safe state</div>`;
+}
+
+function updateAvailableUI() {
+  const container = document.getElementById("availableContainer");
+  container.innerHTML = "";
+  if (resourceCount === 0) {
+    container.innerHTML = "<span style='color:#94a3b8;font-size:13px;'>No resources defined yet.</span>";
+    return;
+  }
+  for (let i = 0; i < resourceCount; i++) {
+    const div = document.createElement("div");
+    div.className = "avail-chip";
+    div.innerHTML = `<label>R${i+1}</label><input type="number" id="avail_${i}" value="0" min="0" step="1">`;
+    container.appendChild(div);
+  }
+}
+
+function flashOutput(msg, safe) {
+  document.getElementById("outputArea").innerHTML = `
+    <div class="result-${safe ? 'safe' : 'unsafe'}">
+      <div class="result-title">${msg}</div>
+    </div>`;
+}
+
+function runBanker() {
+  if (processCount === 0 || resourceCount === 0) {
+    flashOutput("❌ Need at least one process and one resource.", false);
+    return;
+  }
+
+  const rows = document.querySelectorAll("#tableBody tr");
+  let alloc = [], max = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const aInputs = rows[i].querySelectorAll(".alloc-input");
+    const mInputs = rows[i].querySelectorAll(".max-input");
+    if (aInputs.length === 0) continue;
+
+    const aRow = [], mRow = [];
+    for (let j = 0; j < resourceCount; j++) {
+      let a = parseInt(aInputs[j]?.value) || 0;
+      let m = parseInt(mInputs[j]?.value) || 0;
+      if (m < a) {
+        flashOutput(`⚠️ P${i+1}: Max[R${j+1}] = ${m} < Allocation[R${j+1}] = ${a}. Fix and retry.`, false);
+        return;
+      }
+      aRow.push(a);
+      mRow.push(m);
+    }
+    alloc.push(aRow);
+    max.push(mRow);
+  }
+
+  let avail = [];
+  for (let i = 0; i < resourceCount; i++) {
+    const inp = document.getElementById(`avail_${i}`);
+    avail.push(inp ? (parseInt(inp.value) || 0) : 0);
+  }
+
+  let need = alloc.map((row, i) => row.map((a, j) => max[i][j] - a));
+
+  let finish = Array(processCount).fill(false);
+  let work = [...avail];
+  let safeSeq = [];
+  let found;
+
+  while (safeSeq.length < processCount) {
+    found = false;
+    for (let i = 0; i < processCount; i++) {
+      if (!finish[i] && need[i].every((n, j) => n <= work[j])) {
+        work = work.map((w, j) => w + alloc[i][j]);
+        safeSeq.push(`P${i+1}`);
+        finish[i] = true;
+        found = true;
+      }
+    }
+    if (!found) break;
+  }
+
+  const outArea = document.getElementById("outputArea");
+
+  if (safeSeq.length === processCount) {
+    const seqNodes = safeSeq.map((p, idx) =>
+      `<span class="seq-node">${p}</span>${idx < safeSeq.length-1 ? '<span class="seq-arrow">→</span>' : ''}`
+    ).join("");
+
+    outArea.innerHTML = `
+      <div class="result-safe">
+        <div class="result-title">✅ System is in SAFE State</div>
+        <div style="color:#15803d;font-size:13px;margin-bottom:12px;">A safe execution sequence was found. No deadlock will occur.</div>
+        <div style="font-weight:600;color:#166534;margin-bottom:8px;">Safe Sequence:</div>
+        <div class="seq-flow">${seqNodes}</div>
+        <div class="result-meta">
+          <div class="meta-chip">🔄 Final Work Vector: <span>[${work.join(", ")}]</span></div>
+          <div class="meta-chip">📦 Processes: <span>${processCount}</span></div>
+          <div class="meta-chip">🗂️ Resources: <span>${resourceCount}</span></div>
+        </div>
+      </div>`;
+  } else {
+    const deadlocked = finish.map((f, i) => !f ? `P${i+1}` : null).filter(Boolean).join(", ");
+    outArea.innerHTML = `
+      <div class="result-unsafe">
+        <div class="result-title">❌ System is in UNSAFE State</div>
+        <div style="color:#b91c1c;font-size:13px;margin-bottom:12px;">No safe sequence exists. Deadlock may occur.</div>
+        <div class="result-meta">
+          <div class="meta-chip">⚠️ Blocked Processes: <span>${deadlocked}</span></div>
+          <div class="meta-chip">🗂️ Current Work: <span>[${work.join(", ")}]</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:12.5px;color:#7f1d1d;background:#fee2e2;padding:12px;border-radius:10px;">
+          💡 <strong>Suggestions:</strong> Increase available resources, reduce Max claims, or release some allocations.
+        </div>
+      </div>`;
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  processCount = 2;
+  resourceCount = 2;
+  rebuildTable();
+  const rows = document.querySelectorAll("#tableBody tr");
+  if (rows.length >= 2) {
+    const p0A = rows[0].querySelectorAll(".alloc-input");
+    const p0M = rows[0].querySelectorAll(".max-input");
+    p0A[0].value = "1"; p0A[1].value = "0";
+    p0M[0].value = "3"; p0M[1].value = "2";
+    const p1A = rows[1].querySelectorAll(".alloc-input");
+    const p1M = rows[1].querySelectorAll(".max-input");
+    p1A[0].value = "1"; p1A[1].value = "2";
+    p1M[0].value = "4"; p1M[1].value = "3";
+  }
+  const avInps = document.querySelectorAll("#availableContainer input");
+  if (avInps[0]) avInps[0].value = "1";
+  if (avInps[1]) avInps[1].value = "1";
+  updateNeedCells();
+});
+</script>
+</body>
+</html>
